@@ -78,7 +78,7 @@ def run(args, extraEnv):
 def fetch_user_token(profile_config):
     """Fetch temporary credentials of a user with an MFA."""
 
-    check_profile_has_credentials(profile_config)
+    exits_if_has_no_credentials(profile_config)
 
     durationSeconds = int(profile_config['duration_seconds'])
 
@@ -148,7 +148,7 @@ def refresh_session(filename, profile_config):
 
 def fetch_assume_role_creds(user_session_token, profile_config):
 
-    check_profile_has_credentials(profile_config)
+    exits_if_has_no_credentials(profile_config)
 
     sts = boto3.client('sts',
         aws_access_key_id=user_session_token['Credentials']['AccessKeyId'],
@@ -201,11 +201,18 @@ def get_profile_config(profile):
 
     return(config_element)
 
-def check_profile_has_credentials(profile_config):
-    if not profile_config.get('aws_access_key_id') or not profile_config.get('aws_secret_access_key'):
-        if not profile_config['source'].get('aws_access_key_id') or not profile_config['source'].get('aws_secret_access_key'):
-            print("Config files wrongly set. Couldn't even find the access_key.")
+def exits_if_has_no_credentials(profile_config):
+    if not contains_credentials(profile_config):
+        if profile_config.get('source'):
+            if not contains_credentials(profile_config['source']):
+                print("Credentials not found")
+                exit(1)
+        else:
+            print("Credentials not found")
             exit(1)
+
+def contains_credentials(profile_config):
+    return profile_config.get('aws_access_key_id') and profile_config.get('aws_secret_access_key')
 
 def create_aws_env_var(profile_config, creds):
 
