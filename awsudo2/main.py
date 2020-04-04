@@ -14,8 +14,6 @@ import configparser
 import getpass
 import re
 
-aws_config_file = "~/.aws/config"
-
 
 def usage():
     sys.stderr.write('''\
@@ -76,6 +74,8 @@ def run(args, extraEnv):
 
 def fetch_user_token(profile_config):
     """Fetch temporary credentials of a user with an MFA."""
+
+    exits_if_has_no_credentials(profile_config)
 
     durationSeconds = int(profile_config['duration_seconds'])
 
@@ -145,8 +145,7 @@ def refresh_session(filename, profile_config):
 
 def fetch_assume_role_creds(user_session_token, profile_config):
 
-    config = configparser.ConfigParser()
-    config.read([os.path.expanduser(aws_config_file)])
+    exits_if_has_no_credentials(profile_config)
 
     sts = boto3.client('sts',
         aws_access_key_id=user_session_token['Credentials']['AccessKeyId'],
@@ -173,46 +172,44 @@ def fetch_assume_role_creds(user_session_token, profile_config):
 
 def get_profile_config(profile):
 
-    config = configparser.ConfigParser()
-    config.read([os.path.expanduser(aws_config_file)])
-
-    config_element = dict()
-
+    config_element = {}
     config_element['profile'] = profile
 
-    try:
-        config_element['role_arn'] = config.get("profile %s" % profile, 'role_arn')
-    except configparser.NoSectionError:
-        print("Profile %s not found in config file." % profile)
-        exit(1)
-    except configparser.NoOptionError:
-        config_element['role_arn'] = None
+    files = [('~/.aws/credentials', "%s"), ('~/.aws/config', "profile %s")]
+    items = ['aws_access_key_id', 'aws_secret_access_key', 'role_arn', 'region', 'duration_seconds', 'mfa_serial', 'source_profile']
 
-    try:
-        config_element['region'] = config.get("profile %s" % profile, 'region')
-    except configparser.NoOptionError:
-        config_element['region'] = None
+    for i in items:
+        config_element[i] = None
 
-    try:
-        config_element['duration_seconds'] = config.get("profile %s" % profile, 'duration_seconds')
-    except configparser.NoOptionError:
-        config_element['duration_seconds'] = None
+    for f, p in files:
+        config = configparser.ConfigParser()
+        config.read([os.path.expanduser(f)])
 
-    try:
-        config_element['mfa_serial'] = config.get("profile %s" % profile, 'mfa_serial')
-    except configparser.NoOptionError:
-        config_element['mfa_serial'] = None
+        for i in items:
+            try:
+                config_element[i] = config.get(p % profile, i)
+            except configparser.NoSectionError:
+                pass
+            except configparser.NoOptionError:
+                pass
 
-    try:
-        config_element['source_profile'] = config.get("profile %s" % profile, 'source_profile')
-    except configparser.NoOptionError:
-        config_element['source_profile'] = None
-
-    if config_element['source_profile']:
+    if config_element.get('source_profile'):
         config_element['source'] = get_profile_config(config_element['source_profile'])
 
     return(config_element)
 
+def exits_if_has_no_credentials(profile_config):
+    if not contains_credentials(profile_config):
+        if profile_config.get('source'):
+            if not contains_credentials(profile_config['source']):
+                print("Credentials not found")
+                exit(1)
+        else:
+            print("Credentials not found")
+            exit(1)
+
+def contains_credentials(profile_config):
+    return profile_config.get('aws_access_key_id') and profile_config.get('aws_secret_access_key')
 
 def create_aws_env_var(profile_config, creds):
 

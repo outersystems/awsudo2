@@ -3,15 +3,13 @@
 from setuptools import setup
 
 setup(
-    name='awsudo',
+    name='awsudo2',
     description='sudo-like utility to manage AWS credentials',
-    url='https://github.com/makethunder/awsudo',
-    packages=['awsudo'],
+    url='https://github.com/outersystems/awsudo2',
+    packages=['awsudo2'],
     entry_points={
         'console_scripts': [
-            'awsudo = awsudo.main:main',
-            'awsudo2 = awsudo.awsudo2:main',
-            'awsrotate = awsudo.rotate:main',
+            'awsudo2 = awsudo2.main:main',
         ],
     },
     install_requires=[
