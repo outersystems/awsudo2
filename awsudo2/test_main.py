@@ -1,8 +1,11 @@
+#!/bin/env python3
+
 import sys
 import os
 import pytest
 
-from awsudo import awsudo2
+from awsudo2 import main
+# import awsudo2
 
 
 def test_no_args(capsys, monkeypatch):
@@ -10,7 +13,7 @@ def test_no_args(capsys, monkeypatch):
     monkeypatch.setattr(sys, 'argv', ['awsudo2'])
 
     with pytest.raises(SystemExit):
-        awsudo2.main()
+        main.main()
 
     out, err = capsys.readouterr()
     assert 'Usage:' in err
@@ -21,7 +24,7 @@ def test_only_option(capsys, monkeypatch):
     monkeypatch.setattr(sys, 'argv', ['awsudo2', '-u', 'default'])
 
     with pytest.raises(SystemExit):
-        awsudo2.main()
+        main.main()
 
     out, err = capsys.readouterr()
     assert 'Usage:' in err
@@ -35,7 +38,7 @@ def test_parse_args_env_profile(monkeypatch):
     monkeypatch.setattr(os, 'environ', environ)
     monkeypatch.setattr(sys, 'argv', ['awsudo2', 'command'])
 
-    profile, args = awsudo2.parse_args()
+    profile, args = main.parse_args()
 
     assert profile == 'profile'
     assert args == ['command']
@@ -49,7 +52,7 @@ def test_parse_args_option_over_environ(monkeypatch):
     monkeypatch.setattr(os, 'environ', environ)
     monkeypatch.setattr(sys, 'argv', ['awsudo2', '-u', 'profile-option', 'command'])
 
-    profile, args = awsudo2.parse_args()
+    profile, args = main.parse_args()
 
     assert profile == 'profile-option'
     assert args == ['command']
@@ -64,7 +67,7 @@ def test_clean_env(monkeypatch):
     }
     monkeypatch.setattr(os, 'environ', environ)
 
-    awsudo2.clean_env()
+    main.clean_env()
 
     assert 'AWS_SECRET' not in environ
     assert 'BOTO_CONFIG' not in environ
@@ -77,7 +80,7 @@ def test_is_session_valid_invalid(monkeypatch):
         }
     }
 
-    result = awsudo2.is_session_valid(invalid_session_creds)
+    result = main.is_session_valid(invalid_session_creds)
 
     assert result == False
 
@@ -89,7 +92,7 @@ def test_is_session_valid_valid(monkeypatch):
         }
     }
 
-    result = awsudo2.is_session_valid(valid_session_creds)
+    result = main.is_session_valid(valid_session_creds)
 
     assert result == True
 

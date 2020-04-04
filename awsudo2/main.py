@@ -14,9 +14,6 @@ import configparser
 import getpass
 import re
 
-aws_config_file = "~/.aws/config"
-aws_credentials_file = "~/.aws/credentials"
-
 
 def usage():
     sys.stderr.write('''\
