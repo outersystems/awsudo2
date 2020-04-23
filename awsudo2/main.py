@@ -101,15 +101,16 @@ def fetch_user_token(profile_config):
         print(e)
         exit(1)
 
-def get_cached_session(cache_dir, cache_file):
+def get_cached_session(cache_filename):
     """Return the current session from cache_dir/cache_file.
 
     It could be {} if no file found."""
-    cache_dir_path = os.path.expanduser(cache_dir)
+    cache_dir_path = os.path.dirname(
+        os.path.expanduser(cache_filename))
     pathlib.Path(cache_dir_path).mkdir(parents=True, exist_ok=True)
     # Load session creds
-    if os.path.isfile(cache_dir_path + cache_file):
-        with open(cache_dir_path + cache_file) as json_file:
+    if os.path.isfile(cache_filename):
+        with open(cache_filename) as json_file:
             try:
                 session_creds = json.load(json_file)
             except json.decoder.JSONDecodeError as e:
@@ -117,7 +118,7 @@ def get_cached_session(cache_dir, cache_file):
                 exit(1)
     else:
         session_creds = {}
-        with open(cache_dir_path + cache_file, "w+") as json_file:
+        with open(cache_filename, "w+") as json_file:
             json.dump(session_creds, json_file)
 
     return session_creds
@@ -137,15 +138,12 @@ def is_session_valid(session_creds):
     return False
 
 
-def refresh_session(cache_dir, profile_config):
+def refresh_session(cache_filename, profile_config):
     """Refresh credentials and cache them."""
-
-    cache_file_extension = "session.json"
-    cache_filename = cache_dir + profile_config['profile'] + "." + cache_file_extension
 
     session_creds = fetch_user_token(profile_config)
 
-    with open(os.path.expanduser(cache_filename ), "w+") as json_file:
+    with open(os.path.expanduser(cache_filename), "w+") as json_file:
         json.dump(session_creds, json_file, indent=2, sort_keys=True, default=str)
 
     return session_creds
@@ -249,29 +247,33 @@ def is_arn_role(arn):
 def main():
 
     cache_dir = "~/.aws/awsudo2/cache/"
-    cache_file = "user.session.json"
+    cache_file_extension = "session.json"
 
     profile, args = parse_args()
     clean_env()
 
-    session_creds = get_cached_session(cache_dir, cache_file)
+
+    profile_config = get_profile_config(profile)
+    if contains_credentials(profile_config):
+        creds_profile_config = profile_config
+    else:
+        creds_profile_config = profile_config['source']
+
+    cache_filename = os.path.expanduser(
+        cache_dir + creds_profile_config['profile'] + "." + cache_file_extension)
+
+    session_creds = get_cached_session(cache_filename)
 
     if not is_session_valid(session_creds):
         # profile_config = get_profile_config("default")
         profile_config = get_profile_config(profile)
-
-        print(profile_config)
 
         if contains_credentials(profile_config):
             creds_profile_config = profile_config
         else:
             creds_profile_config = profile_config['source']
 
-        print(creds_profile_config)
-
-        session_creds = refresh_session(cache_dir, creds_profile_config)
-
-        exit(0)
+        session_creds = refresh_session(cache_filename, creds_profile_config)
 
     profile_config = get_profile_config(profile)
 
