@@ -86,7 +86,12 @@ def fetch_user_token(profile_config):
         print(e)
         exit(1)
 
-    sts = boto3.client('sts')
+
+    # TODO: how to provide user creds to this call?
+    sts = boto3.client('sts',
+        aws_access_key_id=profile_config['aws_access_key_id'],
+        aws_secret_access_key=profile_config['aws_secret_access_key'],
+    )
     try:
         return sts.get_session_token(
             DurationSeconds=durationSeconds,
@@ -132,12 +137,15 @@ def is_session_valid(session_creds):
     return False
 
 
-def refresh_session(filename, profile_config):
+def refresh_session(cache_dir, profile_config):
     """Refresh credentials and cache them."""
+
+    cache_file_extension = "session.json"
+    cache_filename = cache_dir + profile_config['profile'] + "." + cache_file_extension
 
     session_creds = fetch_user_token(profile_config)
 
-    with open(os.path.expanduser(filename), "w+") as json_file:
+    with open(os.path.expanduser(cache_filename ), "w+") as json_file:
         json.dump(session_creds, json_file, indent=2, sort_keys=True, default=str)
 
     return session_creds
@@ -249,8 +257,21 @@ def main():
     session_creds = get_cached_session(cache_dir, cache_file)
 
     if not is_session_valid(session_creds):
-        profile_config = get_profile_config("default")
-        session_creds = refresh_session(cache_dir + cache_file, profile_config)
+        # profile_config = get_profile_config("default")
+        profile_config = get_profile_config(profile)
+
+        print(profile_config)
+
+        if contains_credentials(profile_config):
+            creds_profile_config = profile_config
+        else:
+            creds_profile_config = profile_config['source']
+
+        print(creds_profile_config)
+
+        session_creds = refresh_session(cache_dir, creds_profile_config)
+
+        exit(0)
 
     profile_config = get_profile_config(profile)
 
