@@ -167,7 +167,7 @@ def fetch_assume_role_creds(user_session_token, profile_config):
     try:
         role_session = sts.assume_role(
             RoleArn=profile_config['role_arn'],
-            RoleSessionName="awsudo2",
+            RoleSessionName=profile_config["profile"],
             DurationSeconds=duration)
     except Exception as e:
         print(e)
