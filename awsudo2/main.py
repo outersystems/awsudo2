@@ -164,10 +164,15 @@ def fetch_assume_role_creds(user_session_token, profile_config):
     else:
         duration = 3600
 
+    if contains_credentials(profile_config):
+        session_name = profile_config["profile"]
+    else:
+        session_name = profile_config['source']["profile"]
+
     try:
         role_session = sts.assume_role(
             RoleArn=profile_config['role_arn'],
-            RoleSessionName=profile_config["profile"],
+            RoleSessionName=session_name,
             DurationSeconds=duration)
     except Exception as e:
         print(e)
