@@ -1,11 +1,6 @@
-##compdef awsudo2
-
 # Description:
-# Auto completion script for https://github.com/makethunder/awsudo/tree/master/awsudo
-# Auto completion script for https://github.com/makethunder/awsudo/tree/master/awsudo
-#
-# Author:
-# @turhn https://github.com/turhn
+# Auto completion script created for https://github.com/makethunder/awsudo by @turhn https://github.com/turhn
+# Adapted for https://github.com/outersystems/awsudo2 by @outersystems https://github.com/outersystems
 
 _awsudo2() {
   local curcontext="$curcontext" state line ret=1
