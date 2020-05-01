@@ -15,15 +15,7 @@ _awsudo2() {
   fi
   _arguments -S -A "-*" -C \
     $cmd_string $profile_list_string \
-    ':targets:->targets' \
-    '*:: :->the_rest' \
-
-#  echo "
-#curcontext: $curcontext
-#state: $state
-#line: $line
-#ret: $ret"
-#  return $ret
+    '*::: :->the_rest' \
 
   case "$state" in
     (cmds)
@@ -47,15 +39,9 @@ _awsudo2() {
         )
       )
       _describe -t profiles 'profiles' profiles && ret=0
-     ;;
-    (targets)
-      _command_names && ret=0
       ;;
     (the_rest)
-      ((CURRENT--))
-      shift words
-      shift words
-      _complete && ret=0
+      _main_complete && ret=0
       ;;
   esac
 
