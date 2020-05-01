@@ -2,7 +2,7 @@
 
 * This tool is deeply inspired from [makethunder/awsudo](https://github.com/makethunder/awsudo).
 * This project is to help me to learn python and I'm far from being perfect. Advices are welcomed but also remember that I have an opinion.
-* I have only one set of keys at once so I never tested if my assumption to have this suported is valid.
+* I had to have multiple aws keys of multiple users.
 
 # Features
 
@@ -67,13 +67,13 @@ $ aws sts get-caller-identity                                   <aws:some-profil
 {
     "UserId": "...",
     "Account": "123456789012",
-    "Arn": "arn:aws:sts::123456789012:assumed-role/some-role/awsudo2"
+    "Arn": "arn:aws:sts::123456789012:assumed-role/some-role/default"
 }
 $ AWS_PROFILE=some-other-profile aws sts get-caller-identity    <aws:some-profile>
 {
     "UserId": "...",
     "Account": "123456789012",
-    "Arn": "arn:aws:sts::123456789012:assumed-role/some-other-role/awsudo2"
+    "Arn": "arn:aws:sts::123456789012:assumed-role/some-other-role/default"
 }
 $ awsudo2 docker run --rm -ti -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN whatever-images
 ...
