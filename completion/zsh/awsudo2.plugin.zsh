@@ -6,19 +6,25 @@ _awsudo2() {
   local curcontext="$curcontext" state line ret=1
   typeset -A opt_args
 
-  if [[ -v AWS_PROFILE ]]; then
-    _arguments -C \
-      '1:targets: _command_names' \
-      '*:: :->target' \
-    && ret=0
-  else
-    _arguments -C \
-      '1:subcommands:->cmds' \
-      '2:profiles:->profile_list' \
-      '3:targets: _command_names' \
-      '*:: :->target' \
-    && ret=0
+  cmd_string=""
+  profile_list_string=""
+  if [[ ! -v AWS_PROFILE ]]; then
+    cmd_string=":subcommands:->cmds"
+    profile_list_string=":profiles:->profile_list"
   fi
+  _arguments -S -A "-*" -C \
+    $cmd_string $profile_list_string \
+    ':targets: _command_names' \
+    '*:: :->target' \
+
+  # Documentation: http://zsh.sourceforge.net/Doc/Release/Completion-System.html#Completion-System
+
+#  echo "
+#curcontext: $curcontext
+#state: $state
+#line: $line
+#ret: $ret"
+#  return $ret
 
   case "$state" in
     (cmds)
