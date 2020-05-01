@@ -6,6 +6,7 @@ _awsudo2() {
   local curcontext="$curcontext" state line ret=1
   typeset -A opt_args
 
+  # Documentation: http://zsh.sourceforge.net/Doc/Release/Completion-System.html#Completion-System
   cmd_string=""
   profile_list_string=""
   if [[ ! -v AWS_PROFILE ]]; then
@@ -14,10 +15,8 @@ _awsudo2() {
   fi
   _arguments -S -A "-*" -C \
     $cmd_string $profile_list_string \
-    ':targets: _command_names' \
-    '*:: :->target' \
-
-  # Documentation: http://zsh.sourceforge.net/Doc/Release/Completion-System.html#Completion-System
+    ':targets:->targets' \
+    '*:: :->the_rest' \
 
 #  echo "
 #curcontext: $curcontext
@@ -49,7 +48,10 @@ _awsudo2() {
       )
       _describe -t profiles 'profiles' profiles && ret=0
      ;;
-    (target)
+    (targets)
+      _command_names && ret=0
+      ;;
+    (the_rest)
       ((CURRENT--))
       shift words
       shift words
