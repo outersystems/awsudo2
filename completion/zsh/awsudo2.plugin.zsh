@@ -38,12 +38,12 @@ _awsudo2() {
       profiles=(
         $(cat ~/.aws/config \
           | awk '
-            /BEGIN/ { profile = ""; desc = "" }
+            BEGIN { profile=""; desc="aws_access_key_id"; }
             /^\[profile/ { profile=$0 ; gsub("\[profile ", "", profile); gsub("\]", "", profile) }
-            /^role_arn/ { desc=$0; gsub("role_arn = ", "", desc) }
-            /^$/ { printf("%s:%s\n", profile, desc); profile = ""; desc = ""}
-            /END/ { printf("%s:%s\n", profile, desc) }' \
-          | sort -u
+            /^role_arn/ { desc=$0; gsub("role_arn *= *", "", desc) }
+            /^$/ { printf("%s:%s\n", profile, desc); profil=""; desc="";}
+            END { printf("%s:%s\n", profile, desc); }' \
+          | sort -t: -k 1,1 -u
         )
       )
       _describe -t profiles 'profiles' profiles && ret=0
