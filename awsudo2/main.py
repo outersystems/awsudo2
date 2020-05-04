@@ -13,6 +13,7 @@ import sys
 import configparser
 import getpass
 import re
+import errno
 
 
 def usage():
@@ -28,7 +29,6 @@ def parse_args():
     try:
         options, args = getopt.getopt(sys.argv[1:], 'u:')
     except getopt.GetoptError as err:
-        # print help information and exit:
         print(err)
         usage()
 
@@ -86,8 +86,6 @@ def fetch_user_token(profile_config):
         print(e)
         exit(1)
 
-
-    # TODO: how to provide user creds to this call?
     sts = boto3.client('sts',
         aws_access_key_id=profile_config['aws_access_key_id'],
         aws_secret_access_key=profile_config['aws_secret_access_key'],
@@ -100,6 +98,7 @@ def fetch_user_token(profile_config):
     except Exception as e:
         print(e)
         exit(1)
+
 
 def get_cached_session(cache_filename):
     """Return the current session from cache_dir/cache_file.
@@ -270,7 +269,6 @@ def main():
     session_creds = get_cached_session(cache_filename)
 
     if not is_session_valid(session_creds):
-        # profile_config = get_profile_config("default")
         profile_config = get_profile_config(profile)
 
         if contains_credentials(profile_config):
