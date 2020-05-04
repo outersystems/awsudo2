@@ -53,8 +53,26 @@ Hello
 
 * Save your `config`
 
-The profiles are searched in the two aws's files: `awsudo2` doesn't check which file contains. This logic permits to put `mfa_serial` in `credentials`. So personnal data is only in `credentials` and  `config` can be shared between colleagues.
+The profiles are searched in the two aws's files: `awsudo2` doesn't check which file contains what. This logic permits to put `mfa_serial` in `credentials`. So personnal data is only in `credentials` and  `config` can be shared between colleagues.
 
+* completion with an `oh-my-zsh`
+
+```console
+$ awsudo2 <tab>
+$ awsudo2 -u <tab>
+default       some-profile  some-other-profile
+$ awsudo2 -u some-profile <tab>
+zsh: do you wish to see all 3328 possibilities (3328 lines)?
+```
+
+If `AWS_PROFILE` is defined, no argument is needed and none will be proposed by the completion. This is useful when used with aliases. For example, the completion of aws command will be performed:
+
+```console
+$ export AWS_PROFILE=some-profile
+$ alias aws="awsudo2 aws"
+$ aws <tab>
+...
+```
 
 * Be creative!
 
