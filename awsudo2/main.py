@@ -13,6 +13,7 @@ import sys
 import configparser
 import getpass
 import re
+import AWSProfile from awsprofile
 
 
 def usage():
@@ -35,14 +36,14 @@ def parse_args():
     if not (args):
         usage()
 
-    profile = os.environ.get('AWS_PROFILE')
+    profile_name = os.environ.get('AWS_PROFILE')
     for (option, value) in options:
         if option == '-u':
-            profile = value
+            profile_name = value
         else:
             raise Exception("unknown option %s" % (option,))
 
-    return profile, args
+    return profile_name, args
 
 
 def clean_env():
@@ -149,7 +150,7 @@ def refresh_session(cache_filename, profile_config):
     return session_creds
 
 
-def fetch_assume_role_creds(user_session_token, profile_config):
+def fetch_assume_role_creds(user_session_token, profile):
 
     exits_if_has_no_credentials(profile_config)
 
@@ -181,115 +182,124 @@ def fetch_assume_role_creds(user_session_token, profile_config):
     return(role_session['Credentials'])
 
 
-def get_profile_config(profile):
+# def get_profile_config(profile):
 
-    config_element = {}
-    config_element['profile'] = profile
+#     config_element = {}
+#     config_element['profile'] = profile
 
-    files = [('~/.aws/credentials', "%s"), ('~/.aws/config', "profile %s")]
-    items = ['aws_access_key_id', 'aws_secret_access_key', 'role_arn', 'region', 'duration_seconds', 'mfa_serial', 'source_profile']
+#     files = [('~/.aws/credentials', "%s"), ('~/.aws/config', "profile %s")]
+#     items = ['aws_access_key_id', 'aws_secret_access_key', 'role_arn', 'region', 'duration_seconds', 'mfa_serial', 'source_profile']
 
-    for i in items:
-        config_element[i] = None
+#     for i in items:
+#         config_element[i] = None
 
-    for f, p in files:
-        config = configparser.ConfigParser()
-        config.read([os.path.expanduser(f)])
+#     for f, p in files:
+#         config = configparser.ConfigParser()
+#         config.read([os.path.expanduser(f)])
 
-        for i in items:
-            try:
-                config_element[i] = config.get(p % profile, i)
-            except configparser.NoSectionError:
-                pass
-            except configparser.NoOptionError:
-                pass
+#         for i in items:
+#             try:
+#                 config_element[i] = config.get(p % profile, i)
+#             except configparser.NoSectionError:
+#                 pass
+#             except configparser.NoOptionError:
+#                 pass
 
-    if config_element.get('source_profile'):
-        config_element['source'] = get_profile_config(config_element['source_profile'])
+#     if config_element.get('source_profile'):
+#         config_element['source'] = get_profile_config(config_element['source_profile'])
 
-    return(config_element)
+#     return(config_element)
 
-def exits_if_has_no_credentials(profile_config):
-    if not contains_credentials(profile_config):
-        if profile_config.get('source'):
-            if not contains_credentials(profile_config['source']):
-                print("Credentials not found")
-                exit(1)
-        else:
-            print("Credentials not found")
-            exit(1)
+# def exits_if_has_no_credentials(profile_config):
+#     if not contains_credentials(profile_config):
+#         if profile_config.get('source'):
+#             if not contains_credentials(profile_config['source']):
+#                 print("Credentials not found")
+#                 exit(1)
+#         else:
+#             print("Credentials not found")
+#             exit(1)
 
-def contains_credentials(profile_config):
-    return profile_config.get('aws_access_key_id') and profile_config.get('aws_secret_access_key')
+# def contains_credentials(profile_config):
+#     return profile_config.get('aws_access_key_id') and profile_config.get('aws_secret_access_key')
 
-def create_aws_env_var(profile_config, creds):
+def create_aws_env_var(profile, creds):
 
     env = dict()
     env['AWS_ACCESS_KEY_ID'] = creds['AccessKeyId']
     env['AWS_SECRET_ACCESS_KEY'] = creds['SecretAccessKey']
     env['AWS_SESSION_TOKEN'] = creds['SessionToken']
     env['AWS_SECURITY_TOKEN'] = creds['SessionToken']
-    env['AWS_PROFILE'] = profile_config['profile']
+    env['AWS_PROFILE'] = profile.data['profile']
 
-    env['AWS_DEFAULT_REGION'] = ""
-    if profile_config['region']:
-        env['AWS_DEFAULT_REGION'] = profile_config['region']
-    else:
-        if profile_config['source']:
-            if profile_config['source']['region']:
-                env['AWS_DEFAULT_REGION'] = profile_config['source']['region']
+    env['AWS_DEFAULT_REGION'] = profile.data['region']
+    # if profile_config['region']:
+    #     env['AWS_DEFAULT_REGION'] = profile_config['region']
+    # else:
+    #     if profile_config['source']:
+    #         if profile_config['source']['region']:
+    #             env['AWS_DEFAULT_REGION'] = profile_config['source']['region']
 
     return(env)
 
-def is_arn_role(arn):
+# def is_arn_role(arn):
 
-    if arn:
-        pattern = re.compile(":role/")
-        return(pattern.search(arn))
+#     if arn:
+#         pattern = re.compile(":role/")
+#         return(pattern.search(arn))
 
-    return False
+#     return False
 
 def main():
 
     cache_dir = "~/.aws/awsudo2/cache/"
     cache_file_extension = "session.json"
 
-    profile, args = parse_args()
+    profile_name, args = parse_args()
     clean_env()
 
 
-    profile_config = get_profile_config(profile)
-    if contains_credentials(profile_config):
-        creds_profile_config = profile_config
-    else:
-        creds_profile_config = profile_config['source']
+    profile = AWSProfile(profile_name)
+    if not profile.credentials_present:
+        print("Credentials not found")
+        exit(1)
+
+    # if contains_credentials(profile_config):
+    #     creds_profile_config = profile_config
+    # else:
+    #     creds_profile_config = profile_config['source']
+
+    # cache_filename = os.path.expanduser(
+    #     cache_dir + creds_profile_config['profile'] + "." + cache_file_extension)
 
     cache_filename = os.path.expanduser(
-        cache_dir + creds_profile_config['profile'] + "." + cache_file_extension)
+        cache_dir
+        + profile.get_username()
+        + "."
+        + cache_file_extension)
 
     session_creds = get_cached_session(cache_filename)
 
     if not is_session_valid(session_creds):
-        # profile_config = get_profile_config("default")
-        profile_config = get_profile_config(profile)
+        # profile_config = get_profile_config(profile)
 
-        if contains_credentials(profile_config):
-            creds_profile_config = profile_config
-        else:
-            creds_profile_config = profile_config['source']
+        # if contains_credentials(profile_config):
+        #     creds_profile_config = profile_config
+        # else:
+        #     creds_profile_config = profile_config['source']
 
-        session_creds = refresh_session(cache_filename, creds_profile_config)
+        # session_creds = refresh_session(cache_filename, creds_profile_config)
+        session_creds = refresh_session(cache_filename, profile)
 
-    profile_config = get_profile_config(profile)
 
-    if is_arn_role(profile_config['role_arn']):
+    if profile.is_role():
         role_creds = fetch_assume_role_creds(
             session_creds,
-            profile_config)
+            profile)
     else:
         role_creds = session_creds['Credentials']
 
-    env = create_aws_env_var(profile_config, role_creds)
+    env = create_aws_env_var(profile, role_creds)
 
     run(args, env)
 

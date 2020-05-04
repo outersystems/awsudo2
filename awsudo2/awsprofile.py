@@ -31,21 +31,32 @@ class AWSProfile:
                 self.username = self.data['source_profile']
                 self.credentials_present = True
 
-    def is_role():
+
+    def is_role(self):
         if self.data['role_arn']:
             role_pattern = re.compile(":role/")
             return(role_pattern.search(self.data['role_arn']))
         return False
     
 
-    def is_user():
+    def is_user(self):
         if self.data['role_arn']:
             user_pattern = re.compile(":user/")
             return(user_pattern.search(self.data['role_arn']))
         return False
 
-    def has_credentials():
+
+    def has_credentials(self):
         return(self.credentials_present)
+
+
+    def get_username(self):
+        return(self.username)
+
+    
+    def get_rolename(self):
+        return(self.data['profile'])
+
 
 def load_section(filename, section, items):
 
@@ -63,5 +74,3 @@ def load_section(filename, section, items):
             pass
 
     return content
-
-
