@@ -30,11 +30,30 @@ _awsudo2() {
       profiles=(
         $(cat ~/.aws/config \
           | awk '
-            BEGIN { profile=""; desc="aws_access_key_id"; }
-            /^\[profile/ { profile=$0 ; gsub("\[profile ", "", profile); gsub("\]", "", profile) }
-            /^role_arn/ { desc=$0; gsub("role_arn *= *", "", desc) }
-            /^$/ { printf("%s:%s\n", profile, desc); profil=""; desc="";}
-            END { printf("%s:%s\n", profile, desc); }' \
+            BEGIN {
+              if ("AWSUDO2_PRINT_DETAILS" in ENVIRON)
+                format="%s:%s\n";
+              else
+                format="%s\n";
+              profile="";
+              desc="aws_access_key_id";
+            }
+            /^\[profile/ {
+              profile=$0;
+              gsub("\[profile ", "", profile);
+              gsub("\]", "", profile)
+            }
+            /^role_arn/ {
+              desc=$0;
+              gsub("role_arn *= *", "", desc)
+            }
+            /^$/ {
+              printf(format, profile, desc);
+              profil=""; desc="aws_access_key_id";
+            }
+            END {
+              printf(format, profile, desc);
+            }' \
           | sort -t: -k 1,1 -u
         )
       )
