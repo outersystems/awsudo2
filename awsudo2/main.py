@@ -13,7 +13,7 @@ import sys
 import configparser
 import getpass
 import re
-import AWSProfile from awsprofile
+from awsprofile import AWSProfile
 
 
 def usage():
@@ -73,14 +73,15 @@ def run(args, extraEnv):
         raise SystemExit("%s: command not found" % (args[0],))
 
 
-def fetch_user_token(profile_config):
+def fetch_user_token(profile):
     """Fetch temporary credentials of a user with an MFA."""
 
-    exits_if_has_no_credentials(profile_config)
+    if not profile.has_credentials():
+        exit(1)
 
-    durationSeconds = int(profile_config['duration_seconds'])
+    durationSeconds = profile.data['duration_seconds']
+    mfaSerial = profile.data['mfa_serial']
 
-    mfaSerial = profile_config['mfa_serial']
     try:
         mfaToken = getpass.getpass(prompt="Enter MFA code of device %s: " % mfaSerial)
     except KeyboardInterrupt as e:
@@ -88,10 +89,9 @@ def fetch_user_token(profile_config):
         exit(1)
 
 
-    # TODO: how to provide user creds to this call?
     sts = boto3.client('sts',
-        aws_access_key_id=profile_config['aws_access_key_id'],
-        aws_secret_access_key=profile_config['aws_secret_access_key'],
+        aws_access_key_id=profile.data['aws_access_key_id'],
+        aws_secret_access_key=profile.data['aws_secret_access_key'],
     )
     try:
         return sts.get_session_token(
@@ -139,10 +139,10 @@ def is_session_valid(session_creds):
     return False
 
 
-def refresh_session(cache_filename, profile_config):
+def refresh_session(cache_filename, profile):
     """Refresh credentials and cache them."""
 
-    session_creds = fetch_user_token(profile_config)
+    session_creds = fetch_user_token(profile)
 
     with open(os.path.expanduser(cache_filename), "w+") as json_file:
         json.dump(session_creds, json_file, indent=2, sort_keys=True, default=str)
@@ -152,76 +152,26 @@ def refresh_session(cache_filename, profile_config):
 
 def fetch_assume_role_creds(user_session_token, profile):
 
-    exits_if_has_no_credentials(profile_config)
+    if not profile.has_credentials():
+        exit(1)
 
     sts = boto3.client('sts',
         aws_access_key_id=user_session_token['Credentials']['AccessKeyId'],
         aws_secret_access_key=user_session_token['Credentials']['SecretAccessKey'],
         aws_session_token=user_session_token['Credentials']['SessionToken'],
-        region_name=profile_config['region'])
-
-    if profile_config['duration_seconds']:
-        duration = int(profile_config['duration_seconds'])
-    else:
-        duration = 3600
-
-    if contains_credentials(profile_config):
-        session_name = profile_config["profile"]
-    else:
-        session_name = profile_config['source']["profile"]
+        region_name=profile.data['region'])
 
     try:
         role_session = sts.assume_role(
-            RoleArn=profile_config['role_arn'],
-            RoleSessionName=session_name,
-            DurationSeconds=duration)
+            RoleArn=profile.data['role_arn'],
+            RoleSessionName=profile.data["profile"],
+            DurationSeconds=profile.data['duration_seconds'])
     except Exception as e:
         print(e)
         exit(1)
 
     return(role_session['Credentials'])
 
-
-# def get_profile_config(profile):
-
-#     config_element = {}
-#     config_element['profile'] = profile
-
-#     files = [('~/.aws/credentials', "%s"), ('~/.aws/config', "profile %s")]
-#     items = ['aws_access_key_id', 'aws_secret_access_key', 'role_arn', 'region', 'duration_seconds', 'mfa_serial', 'source_profile']
-
-#     for i in items:
-#         config_element[i] = None
-
-#     for f, p in files:
-#         config = configparser.ConfigParser()
-#         config.read([os.path.expanduser(f)])
-
-#         for i in items:
-#             try:
-#                 config_element[i] = config.get(p % profile, i)
-#             except configparser.NoSectionError:
-#                 pass
-#             except configparser.NoOptionError:
-#                 pass
-
-#     if config_element.get('source_profile'):
-#         config_element['source'] = get_profile_config(config_element['source_profile'])
-
-#     return(config_element)
-
-# def exits_if_has_no_credentials(profile_config):
-#     if not contains_credentials(profile_config):
-#         if profile_config.get('source'):
-#             if not contains_credentials(profile_config['source']):
-#                 print("Credentials not found")
-#                 exit(1)
-#         else:
-#             print("Credentials not found")
-#             exit(1)
-
-# def contains_credentials(profile_config):
-#     return profile_config.get('aws_access_key_id') and profile_config.get('aws_secret_access_key')
 
 def create_aws_env_var(profile, creds):
 
@@ -231,24 +181,10 @@ def create_aws_env_var(profile, creds):
     env['AWS_SESSION_TOKEN'] = creds['SessionToken']
     env['AWS_SECURITY_TOKEN'] = creds['SessionToken']
     env['AWS_PROFILE'] = profile.data['profile']
-
     env['AWS_DEFAULT_REGION'] = profile.data['region']
-    # if profile_config['region']:
-    #     env['AWS_DEFAULT_REGION'] = profile_config['region']
-    # else:
-    #     if profile_config['source']:
-    #         if profile_config['source']['region']:
-    #             env['AWS_DEFAULT_REGION'] = profile_config['source']['region']
 
     return(env)
 
-# def is_arn_role(arn):
-
-#     if arn:
-#         pattern = re.compile(":role/")
-#         return(pattern.search(arn))
-
-#     return False
 
 def main():
 
@@ -264,14 +200,6 @@ def main():
         print("Credentials not found")
         exit(1)
 
-    # if contains_credentials(profile_config):
-    #     creds_profile_config = profile_config
-    # else:
-    #     creds_profile_config = profile_config['source']
-
-    # cache_filename = os.path.expanduser(
-    #     cache_dir + creds_profile_config['profile'] + "." + cache_file_extension)
-
     cache_filename = os.path.expanduser(
         cache_dir
         + profile.get_username()
@@ -281,14 +209,6 @@ def main():
     session_creds = get_cached_session(cache_filename)
 
     if not is_session_valid(session_creds):
-        # profile_config = get_profile_config(profile)
-
-        # if contains_credentials(profile_config):
-        #     creds_profile_config = profile_config
-        # else:
-        #     creds_profile_config = profile_config['source']
-
-        # session_creds = refresh_session(cache_filename, creds_profile_config)
         session_creds = refresh_session(cache_filename, profile)
 
 
@@ -306,4 +226,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

@@ -1,6 +1,7 @@
 # from awsprofile import AWSProfile
 import configparser
 import os
+import re
  
 class AWSProfile:
     'AWS profile representation, flatten with its role_source.'
@@ -31,16 +32,21 @@ class AWSProfile:
                 self.username = self.data['source_profile']
                 self.credentials_present = True
 
+        if not 'duration_seconds' in self.data:
+            self.data['duration_seconds'] = 3600
+
+        self.data['duration_seconds'] = int(self.data['duration_seconds'])
+
 
     def is_role(self):
-        if self.data['role_arn']:
+        if 'role_arn' in self.data:
             role_pattern = re.compile(":role/")
             return(role_pattern.search(self.data['role_arn']))
         return False
     
 
     def is_user(self):
-        if self.data['role_arn']:
+        if 'role_arn' in self.data:
             user_pattern = re.compile(":user/")
             return(user_pattern.search(self.data['role_arn']))
         return False
