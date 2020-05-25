@@ -5,7 +5,6 @@ import os
 import pytest
 
 from awsudo2 import main
-# import awsudo2
 
 
 def test_no_args(capsys, monkeypatch):
