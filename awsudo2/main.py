@@ -27,9 +27,9 @@ Sets AWS environment variables and then executes the COMMAND.
     exit(1)
 
 
-def parse_args():
+def parse_args(argv):
     try:
-        options, args = getopt.getopt(sys.argv[1:], 'u:')
+        options, args = getopt.getopt(argv[1:], 'u:')
     except getopt.GetoptError as err:
         # print help information and exit:
         print(err)
@@ -193,7 +193,7 @@ def main():
     cache_dir = "~/.aws/awsudo2/cache/"
     cache_file_extension = "session.json"
 
-    profile_name, args = parse_args()
+    profile_name, args = parse_args(sys.argv)
     clean_env()
 
 
