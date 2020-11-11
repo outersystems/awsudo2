@@ -13,7 +13,8 @@ import sys
 import configparser
 import getpass
 import re
-from awsprofile import AWSProfile
+
+from awsudo2.awsprofile import AWSProfile
 
 
 def usage():
