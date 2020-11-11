@@ -38,7 +38,7 @@ def parse_args(argv):
     if not (args):
         usage()
 
-    profile_name = os.environ.get('AWS_PROFILE')
+    profile_name = os.environ.get('AWS_PROFILE', default="default")
     for (option, value) in options:
         if option == '-u':
             profile_name = value
@@ -196,10 +196,9 @@ def main():
     profile_name, args = parse_args(sys.argv)
     clean_env()
 
-
     profile = AWSProfile(profile_name)
     if not profile.credentials_present:
-        print("Credentials not found")
+        print(f"No credentials found for the profile \"{profile_name}\"")
         exit(1)
 
     cache_filename = os.path.expanduser(
@@ -212,7 +211,6 @@ def main():
 
     if not is_session_valid(session_creds):
         session_creds = refresh_session(cache_filename, profile)
-
 
     if profile.is_role():
         role_creds = fetch_assume_role_creds(
