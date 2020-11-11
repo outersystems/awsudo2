@@ -12,6 +12,7 @@ import getopt
 import sys
 import configparser
 import getpass
+import errno
 import re
 
 from awsudo2.awsprofile import AWSProfile
